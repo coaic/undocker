@@ -6,14 +6,63 @@ import json
 import logging
 import os
 import sys
-import tarfile
+import copy
 import tempfile
 
 from contextlib import closing
-
+from tarfile import TarFile
+from tarfile import ExtractError
 
 LOG = logging.getLogger(__name__)
 
+class TarFileChild(TarFile):
+    def extractall(self, path=".", members=None, *, numeric_owner=False):
+        """Extract all members from the archive to the current working
+           directory and set owner, modification time and modified permissions 
+           on directories afterwards. `path' specifies a different directory
+           to extract to. `members' is optional and must be a subset of the
+           list returned by getmembers(). If `numeric_owner` is True, only
+           the numbers for user/group names are used and not the names.
+           
+           Directory permissions are modified so the owner is 'rwx', allowing 
+           subsequent extractions of image layers to be added to the same file
+           system. Without this permission modification, the extraction silently
+           fails and the file system object is not added to the composite file 
+           system.
+        """
+        directories = []
+
+        if members is None:
+            members = self
+
+        for tarinfo in members:
+            if tarinfo.isdir():
+                # Extract directories with a safe mode.
+                directories.append(tarinfo)
+                tarinfo = copy.copy(tarinfo)
+                tarinfo.mode = 0o700
+            # Do not set_attrs directories, as we will do that further down
+            self.extract(tarinfo, path, set_attrs=not tarinfo.isdir(),
+                         numeric_owner=numeric_owner)
+
+        # Reverse sort directories.
+        directories.sort(key=lambda a: a.name)
+        directories.reverse()
+
+        # Set correct owner, mtime and filemode on directories.
+        for tarinfo in directories:
+            dirpath = os.path.join(path, tarinfo.name)
+            try:
+                self.chown(tarinfo, dirpath, numeric_owner=numeric_owner)
+                self.utime(tarinfo, dirpath)
+                if tarinfo.mode & 0o40000:
+                    tarinfo.mode = tarinfo.mode | 0b10000010
+                self.chmod(tarinfo, dirpath)
+            except ExtractError as e:
+                if self.errorlevel > 1:
+                    raise
+                else:
+                    self._dbg(1, "tarfile: %s" % e)
 
 def parse_args():
     p = argparse.ArgumentParser()
@@ -21,6 +70,9 @@ def parse_args():
     p.add_argument('--ignore-errors', '-i',
                    action='store_true',
                    help='Ignore OS errors when extracting files')
+    p.add_argument('--archive', '-a',
+                   default='.',
+                   help='Archive file (defaults to stding)')
     p.add_argument('--output', '-o',
                    default='.',
                    help='Output directory (defaults to ".")')
@@ -71,21 +123,25 @@ def main():
     logging.basicConfig(level=args.loglevel)
 
     with tempfile.NamedTemporaryFile() as fd:
-        while True:
-            data = sys.stdin.read(8192)
-            if not data:
-                break
-            fd.write(data)
-        fd.seek(0)
-        with tarfile.TarFile(fileobj=fd) as img:
+        if args.archive != '.':
+            fd = open(args.archive, mode='rb')
+        else:
+            while True:
+                data = sys.stdin.buffer.read(8192)
+                if not data:
+                    break
+                fd.write(data)
+            fd.seek(0)
+
+        with TarFileChild(fileobj=fd) as img:
             repos = img.extractfile('repositories')
             repos = json.load(repos)
 
             if args.list:
                 for name, tags in repos.items():
-                    print '%s: %s' % (
+                    print('%s: %s' % (
                         name,
-                        ' '.join(tags))
+                        ' '.join(tags)))
                 sys.exit(0)
 
             if not args.image:
@@ -112,7 +168,7 @@ def main():
             layers = list(find_layers(img, top))
 
             if args.layers:
-                print '\n'.join(reversed(layers))
+                print('\n'.join(reversed(layers)))
                 sys.exit(0)
 
             if not os.path.isdir(args.output):
@@ -123,7 +179,7 @@ def main():
                     continue
 
                 LOG.info('extracting layer %s', id)
-                with tarfile.TarFile(
+                with TarFileChild(
                         fileobj=img.extractfile('%s/layer.tar' % id),
                         errorlevel=(0 if args.ignore_errors else 1)) as layer:
                     layer.extractall(path=args.output)
