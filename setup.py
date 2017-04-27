@@ -1,15 +1,15 @@
 from setuptools import setup
 
-setup(name='undocker',
+setup(name='undocker3',
         author = 'Lars Kellogg-Stedman',
         author_email = 'lars@oddbit.com',
-        version='5',
+        version='6',
         description='Unpack docker images',
-        url='http://github.com/larsks/undocker',
-        py_modules=['undocker'],
+        url='http://github.com/coaic/undocker3',
+        py_modules=['undocker3'],
         entry_points={
             'console_scripts': [
-                'undocker = undocker:main',
+                'undocker3 = undocker3:main',
                 ],
             }
         )
