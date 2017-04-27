@@ -1,0 +1,10 @@
+LICENSE.txt
+MANIFEST.in
+README.md
+setup.cfg
+undocker3.py
+undocker3.egg-info/PKG-INFO
+undocker3.egg-info/SOURCES.txt
+undocker3.egg-info/dependency_links.txt
+undocker3.egg-info/entry_points.txt
+undocker3.egg-info/top_level.txt

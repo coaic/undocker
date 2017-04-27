@@ -1,0 +1,3 @@
+[console_scripts]
+undocker3 = undocker3:main
+

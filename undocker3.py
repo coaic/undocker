@@ -72,7 +72,7 @@ def parse_args():
                    help='Ignore OS errors when extracting files')
     p.add_argument('--archive', '-a',
                    default='.',
-                   help='Archive file (defaults to stding)')
+                   help='Archive file (defaults to stdin)')
     p.add_argument('--output', '-o',
                    default='.',
                    help='Output directory (defaults to ".")')
