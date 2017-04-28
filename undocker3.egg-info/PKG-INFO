@@ -5,6 +5,6 @@ Summary: Unpack docker images
 Home-page: http://github.com/coaic/undocker3
 Author: Lars Kellogg-Stedman
 Author-email: lars@oddbit.com
-License: UNKNOWN
-Description: UNKNOWN
-Platform: UNKNOWN
+License: GPL v3
+Description: Unpacks a Docker image.
+Platform: Linux/Mac OS
