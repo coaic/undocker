@@ -15,7 +15,7 @@ from tarfile import ExtractError
 
 LOG = logging.getLogger(__name__)
 
-class TarFileChild(TarFile):
+class TarFileOverrides(TarFile):
     def extractall(self, path=".", members=None, *, numeric_owner=False):
         """Extract all members from the archive to the current working
            directory and set owner, modification time and modified permissions 
@@ -133,7 +133,7 @@ def main():
                 fd.write(data)
             fd.seek(0)
 
-        with TarFileChild(fileobj=fd) as img:
+        with TarFileOverrides(fileobj=fd) as img:
             repos = img.extractfile('repositories')
             repos = json.load(repos)
 
@@ -179,7 +179,7 @@ def main():
                     continue
 
                 LOG.info('extracting layer %s', id)
-                with TarFileChild(
+                with TarFileOverrides(
                         fileobj=img.extractfile('%s/layer.tar' % id),
                         errorlevel=(0 if args.ignore_errors else 1)) as layer:
                     layer.extractall(path=args.output)
