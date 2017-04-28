@@ -13,6 +13,10 @@ from contextlib import closing
 from tarfile import TarFile
 from tarfile import ExtractError
 
+from constants import OWNER_READ_WRITE
+from constants import DIRECTORY_MODE
+from constants import OWNER_WRITE
+
 LOG = logging.getLogger(__name__)
 
 class TarFileOverrides(TarFile):
@@ -40,7 +44,7 @@ class TarFileOverrides(TarFile):
                 # Extract directories with a safe mode.
                 directories.append(tarinfo)
                 tarinfo = copy.copy(tarinfo)
-                tarinfo.mode = 0o700
+                tarinfo.mode = OWNER_READ_WRITE
             # Do not set_attrs directories, as we will do that further down
             self.extract(tarinfo, path, set_attrs=not tarinfo.isdir(),
                          numeric_owner=numeric_owner)
@@ -55,8 +59,8 @@ class TarFileOverrides(TarFile):
             try:
                 self.chown(tarinfo, dirpath, numeric_owner=numeric_owner)
                 self.utime(tarinfo, dirpath)
-                if tarinfo.mode & 0o40000:
-                    tarinfo.mode = tarinfo.mode | 0b10000010
+                if tarinfo.mode & DIRECTORY_MODE:
+                    tarinfo.mode = tarinfo.mode | OWNER_WRITE
                 self.chmod(tarinfo, dirpath)
             except ExtractError as e:
                 if self.errorlevel > 1:
