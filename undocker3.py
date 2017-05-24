@@ -150,7 +150,7 @@ def main():
 
             if not args.image:
                 if len(repos) == 1:
-                    args.image = repos.keys()[0]
+                    args.image = next(iter(repos.keys()))
                 else:
                     LOG.error('No image name specified and multiple '
                               'images contained in archive')
@@ -158,7 +158,7 @@ def main():
             try:
                 name, tag = args.image.split(':', 1)
             except ValueError:
-                name, tag = args.image, 'latest'
+                name, tag = args.image, next(iter(repos[args.image].keys()))
 
             try:
                 top = repos[name][tag]
